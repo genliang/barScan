@@ -117,6 +117,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
         console.log("Well, no tokens found, and not logining to Google. Too bad :(");
       }
    });
+   //validate the token received
    ref.addEventListener('exit', function(e){
     if (access_token){
       $http({
