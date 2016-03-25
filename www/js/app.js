@@ -25,7 +25,7 @@ scanApp.run(function($ionicPlatform) {
 
 scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner, $http, $cordovaOauth){
   var requestToken = "";
-  var accessToken = "";
+  var accessToken = window.localStorage['access_token'];
 
   var clientSecret = "iOcsIEVS1FmJV9a1wcvkALuI";
   var scriptID = "MthX4QQhSpI8h7iQJnCg5pfXmydG7heBS";
@@ -60,81 +60,59 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
 
   $scope.login = function() {
     //To get a response from Google
-    var ref = window.open(url, '_blank');
-    console.log('window is open');
-
-    
-   /*ref.addEventListener('loadstop', function(e) { 
-      var url = e.url;
-      //var code = /\?access_token=(.+)$/.exec(url);
-      console.log(url); // trying to extract the access_token
-      if(url.indexOf("token") !== -1){ //found some token
-        console.log("Going to extract some token");
-        var accessTokenlength = 'access_token='.length;
-        var tokenTypelength = 'token_type='.length;
-        var expirylength = 'expires_in='.length;
-        var accessTokenIndex = url.indexOf('access_token');
-        var tokenTypeIndex = url.indexOf('token_type');
-        var expiryIndex = url.indexOf('expires_in');
-        access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
-        var oauth = {
-          'access_token': access_token,
-          expires_in: expirylength,
-          user: Google.client_id
+      var ref = window.open(url, '_blank');
+      console.log('window is open');
+      
+     ref.addEventListener('loadstart', function(e) { 
+        var url = e.url;
+        //var code = /\?access_token=(.+)$/.exec(url);
+        console.log(url); // trying to extract the access_token
+        if(url.indexOf("accounts") !== -1){ // Login to Google
+          console.log("Login to Google");
+        } 
+        else if (url.indexOf("token") !== -1){ //Some token found
+          console.log("Extracting the token...");
+          var accessTokenlength = 'access_token='.length;
+          var tokenTypelength = 'token_type='.length;
+          var expirylength = 'expires_in='.length;
+          var accessTokenIndex = url.indexOf('access_token');
+          var tokenTypeIndex = url.indexOf('token_type');
+          var expiryIndex = url.indexOf('expires_in');
+          var access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
+          //saving to local storage
+          window.localStorage['access_token'] = access_token; 
+          var oauth = {
+            'access_token': access_token,
+            expires_in: expirylength,
+            user: Google.client_id
+          }
+          console.log(access_token);
+          ref.close();
+        } 
+        else{
+          console.log("Well, no tokens found, and not logining to Google. Too bad :(");
         }
-        console.log(access_token);
-        ref.close();
-      } 
-      else{
-        console.log("Need to login to google!");
-      }
-   });*/
-   ref.addEventListener('loadstart', function(e) { 
-      var url = e.url;
-      //var code = /\?access_token=(.+)$/.exec(url);
-      console.log(url); // trying to extract the access_token
-      if(url.indexOf("accounts") !== -1){ // Login to Google
-        console.log("Login to Google");
-      } 
-      else if (url.indexOf("token") !== -1){ //Some token found
-        console.log("Extracting the token...");
-        var accessTokenlength = 'access_token='.length;
-        var tokenTypelength = 'token_type='.length;
-        var expirylength = 'expires_in='.length;
-        var accessTokenIndex = url.indexOf('access_token');
-        var tokenTypeIndex = url.indexOf('token_type');
-        var expiryIndex = url.indexOf('expires_in');
-        access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
-        var oauth = {
-          'access_token': access_token,
-          expires_in: expirylength,
-          user: Google.client_id
-        }
-        console.log(access_token);
-        ref.close();
-      } 
-      else{
-        console.log("Well, no tokens found, and not logining to Google. Too bad :(");
-      }
-   });
-   //validate the token received
-   ref.addEventListener('exit', function(e){
-    if (access_token){
-      $http({
-          method: 'POST',
-          url: 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + access_token
-        }).then(function successCallback(resp){
-          console.log('Token Validated!');
-          console.log(resp.data);
-        }, function errorCallback(resp){
-          console.log('Error' + resp.data);
-        });
-      }
-   });
-   
+     });
+     //validate the token received
+     /*ref.addEventListener('exit', function(e){
+      
+     
+    }*/
   }
 
-  
+  $scope.validateToken = function(){
+    $http({
+            method: 'POST',
+            url: 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + accessToken
+          }).then(function successCallback(resp){
+            console.log('Token Validated!');
+            console.log(resp.data);
+            return true;
+          }, function errorCallback(resp){
+            console.log('Error' + resp.data);
+            return false;
+          });
+  }
 
   $scope.callScriptFunction = function() {
     //var sheetID = "1CxQfeX4C8cdsSs1pxCNnrOu4Ss1y_PXjP1YN1r3KC-M";
@@ -143,7 +121,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
       method: 'POST',
       url: 'https://script.googleapis.com/v1/scripts/' + scriptID + ':run',
       headers: {
-        'Authorization' : 'Bearer ' + access_token,
+        'Authorization' : 'Bearer ' + accessToken,
         'Content-Type': 'application/json'
       },
       data: {
@@ -169,4 +147,25 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
       console.log(resp.statusText);
     });*/
   }
+
+  $scope.checkToken = function(){
+  //check token and validate, else ask for log in 
+    if (accessToken){
+      if($scope.validateToken()){
+        console.log('Token validated!');
+      }
+      else{
+        console.log('Token is wrong! :(');
+      }
+    }
+    //No token
+    else if(accessToken === undefined){
+      console.log('No token');
+      $scope.login();
+      //$scope.validateToken();
+    }
+  }
+
 });
+
+
