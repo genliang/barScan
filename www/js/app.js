@@ -78,7 +78,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
           var accessTokenIndex = url.indexOf('access_token');
           var tokenTypeIndex = url.indexOf('token_type');
           var expiryIndex = url.indexOf('expires_in');
-          var access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
+          access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
           //saving to local storage
           window.localStorage['access_token'] = access_token; 
           var oauth = {
@@ -94,16 +94,16 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
         }
      });
      //validate the token received
-     /*ref.addEventListener('exit', function(e){
+     ref.addEventListener('exit', function(e){
       
      
-    }*/
+    }
   }
 
   $scope.validateToken = function(){
     $http({
             method: 'POST',
-            url: 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + accessToken
+            url: 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + access_token
           }).then(function successCallback(resp){
             console.log('Token Validated!');
             console.log(resp.data);
@@ -121,7 +121,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
       method: 'POST',
       url: 'https://script.googleapis.com/v1/scripts/' + scriptID + ':run',
       headers: {
-        'Authorization' : 'Bearer ' + accessToken,
+        'Authorization' : 'Bearer ' + accessoken,
         'Content-Type': 'application/json'
       },
       data: {
@@ -148,21 +148,10 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
     });*/
   }
 
-  $scope.checkToken = function(){
-  //check token and validate, else ask for log in 
-    if (accessToken){
-      if($scope.validateToken()){
-        console.log('Token validated!');
-      }
-      else{
-        console.log('Token is wrong! :(');
-      }
-    }
-    //No token
-    else if(accessToken === undefined){
-      console.log('No token');
-      $scope.login();
-      //$scope.validateToken();
+//check token and validate, else ask for log in 
+  if (accessToken){
+    if($scope.validateToken()){
+      console.log('Token validated!');
     }
   }
 
