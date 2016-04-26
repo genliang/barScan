@@ -7,6 +7,8 @@ var scanApp = angular.module('barScan', ['ionic', 'ngCordova', 'ngCordovaOauth']
 
 scanApp.run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
+    console.log('Device ready!');
+    //check token and validate, else ask for log in 
     if(window.cordova && window.cordova.plugins.Keyboard) {
       // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
       // for form inputs)
@@ -20,10 +22,20 @@ scanApp.run(function($ionicPlatform) {
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
+    /*if (window.localStorage['access_token']){
+      access_token = window.localStorage['access_token'];
+      if($scope.validateToken(access_token)){
+        console.log('Token validated!');
+      }
+    }
+    else{
+      $scope.login();
+    }*/
   });
 });
 
 scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner, $http, $cordovaOauth){
+  $scope.valid = false;
   var requestToken = "";
   var accessToken = window.localStorage['access_token'];
 
@@ -41,13 +53,15 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
   };
   var url = Google.url+'?client_id='+ Google.client_id + '&response_type=token' +'&redirect_uri=' + Google.redirect_uri + '&scope=' + Google.scope;
 
-
+  if (accessToken){
+    $scope.valid = true;
+  }
   $scope.scanBarcode = function() {
         //$scope.login();
         $cordovaBarcodeScanner.scan().then(function(imageData) {
             barcode_scan = imageData.text;
             alert(barcode_scan);
-            $scope.callScriptFunction();
+            $scope.callScriptFunction(accessToken);
             console.log(typeof(barcode_scan));
             console.log("Barcode Format -> " + imageData.format);
             console.log("Cancelled -> " + imageData.cancelled);
@@ -78,9 +92,12 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
           var accessTokenIndex = url.indexOf('access_token');
           var tokenTypeIndex = url.indexOf('token_type');
           var expiryIndex = url.indexOf('expires_in');
-          access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
+          var access_token = url.substring(accessTokenIndex+accessTokenlength, tokenTypeIndex-1);
           //saving to local storage
-          window.localStorage['access_token'] = access_token; 
+          window.localStorage['access_token'] = access_token;
+          accessToken = window.localStorage['access_token'];
+          
+
           var oauth = {
             'access_token': access_token,
             expires_in: expirylength,
@@ -95,18 +112,19 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
      });
      //validate the token received
      ref.addEventListener('exit', function(e){
-      
+      $scope.validateToken(accessToken);
      
-    }
+    });
   }
 
-  $scope.validateToken = function(){
+  $scope.validateToken = function(access_token){
     $http({
             method: 'POST',
             url: 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + access_token
           }).then(function successCallback(resp){
             console.log('Token Validated!');
             console.log(resp.data);
+            $scope.valid = true;
             return true;
           }, function errorCallback(resp){
             console.log('Error' + resp.data);
@@ -114,14 +132,14 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
           });
   }
 
-  $scope.callScriptFunction = function() {
+  $scope.callScriptFunction = function(access_token) {
     //var sheetID = "1CxQfeX4C8cdsSs1pxCNnrOu4Ss1y_PXjP1YN1r3KC-M";
     //$http.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
     $http({
       method: 'POST',
       url: 'https://script.googleapis.com/v1/scripts/' + scriptID + ':run',
       headers: {
-        'Authorization' : 'Bearer ' + accessoken,
+        'Authorization' : 'Bearer ' + access_token,
         'Content-Type': 'application/json'
       },
       data: {
@@ -135,7 +153,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
       console.log(resp.data);
     }, function errorCallback(resp){
       console.log(resp.data);
-      console.log(access_token)
+      console.log(access_token);
     });
 
     /*$http({
@@ -148,12 +166,7 @@ scanApp.controller('BarcodeController', function($scope, $cordovaBarcodeScanner,
     });*/
   }
 
-//check token and validate, else ask for log in 
-  if (accessToken){
-    if($scope.validateToken()){
-      console.log('Token validated!');
-    }
-  }
+
 
 });
 
